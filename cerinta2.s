@@ -13,7 +13,7 @@
     formatScanf:.asciz "%d\n"
     formatPrintfTest1:.asciz "%d\n"
     formatPrintfADD:.asciz "%d: ((%d, %d), (%d, %d))\n"
-    formatPrintfGET:.asciz "(%d, %d)\n"
+    formatPrintfGET:.asciz "((%d, %d), (%d, %d))\n"
 
 .text
 .global main
@@ -43,10 +43,10 @@ loop_T:
     cmp task, %eax
     je et_add
 
-    /*mov $2, %eax
+    mov $2, %eax
     cmp task, %eax
     je et_get
-    
+    /*
     mov $3, %eax
     cmp task, %eax
     je et_delete
@@ -215,6 +215,177 @@ loop_actualizare:
 
 /*GET---------------------------------------------------------- */
 
+et_get:
+    push $descriptor
+    push $formatScanf
+    call scanf
+    add $8, %esp
+
+get:
+    mov $mat, %esi
+    movl $0, lineIndex
+    forG_lines:
+        movl lineIndex, %ecx
+        cmp %ecx, N
+        je get_ret
+
+        movl $-1, start
+        movl $-1, finish
+        movl $0, columnIndex
+
+        forG_columns:
+            mov columnIndex, %ecx
+            cmp %ecx, N
+            je contG_lines
+
+            mov $mat, %esi
+            mov $0, %edx
+            mov $0, %eax
+            mov lineIndex, %eax
+            mull N
+            add columnIndex, %eax
+
+            movl (%esi, %eax, 4), %edx
+
+            cmp descriptor, %edx
+            je get_ifs
+
+            mov $-1, %ebp
+            cmp %ebp, finish
+            jne contG_lines
+
+        contG_columns:
+            incl columnIndex
+            jmp forG_columns
+
+
+    contG_lines:
+        mov finish, %edi
+        add start, %edi
+        mov $-2, %ebp
+        cmp %ebp, %edi
+        jne afisare_get
+
+        incl lineIndex
+        jmp forG_lines
+
+
+get_ifs:
+    mov $-1, %ebp
+    cmp start, %ebp
+    je get_if1
+
+    mov columnIndex, %ebp
+    mov %ebp, finish
+    jmp contG_columns
+
+get_if1:
+    mov columnIndex, %ebp
+    mov %ebp, start
+    jmp contG_columns
+
+get_ret:
+    mov $-1, %ebp
+    cmp start, %ebp
+    je get_actualizare
+
+afisare_get:
+    push finish
+    push lineIndex
+    push start
+    push lineIndex
+    push $formatPrintfGET
+    call printf
+    add $20, %esp
+
+    pop %ecx
+    inc %ecx
+    jmp loop_T
+
+get_actualizare:
+    movl $0, start
+    movl $0, finish
+
+    jmp afisare_get
+
+
+/*DELETE--------------------------------------------------------- */
+et_delete:
+    push $descriptor
+    push $formatScanf
+    call scanf
+    add $8, %esp
+
+delete:
+    mov $0, %eax
+    mov $-1, %ebx
+    xor %ecx, %ecx
+    mov $v, %esi
+    movl (%esi, %ecx, 4), %edi /*valc*/
+
+loop_delete:
+    cmp %ecx, N
+    je delete_ret
+
+    movl (%esi, %ecx, 4), %edx
+
+    cmp %edx, %edi
+    jne delete_ifs
+
+loopdelete_ret:
+    cmp %edx, descriptor
+    je delete_actualizare
+loop_del_ret:
+    inc %ecx
+    jmp loop_delete
+
+delete_ifs:
+    mov %ecx, %ebx
+    sub $1, %ebx
+
+    cmp %edi, descriptor
+    jne delete_afisare
+
+delete_afis_ret:
+    mov %ecx, %eax
+    mov %edx, %edi
+
+    jmp loopdelete_ret
+
+delete_actualizare:
+    mov $0, %ebp
+    movl %ebp,  (%esi, %ecx, 4)
+    jmp loop_del_ret
+
+delete_afisare:
+    mov $0, %ebp
+    cmp %edi, %ebp
+    je delete_afis_ret
+
+    push %edx
+    push %ecx
+    push %ebx
+    push %eax
+    push %edi
+    push $formatPrintfADD
+    call printf
+    add $4, %esp
+    pop %edi
+    pop %eax
+    pop %ebx
+    pop %ecx
+    pop %edx
+
+    jmp delete_afis_ret
+
+delete_ret:
+    pop %ecx
+    inc %ecx
+    jmp loop_T
+
+
+
+/*DEFRAGMENTATION */
 afisare_v:
     xor %ecx, %ecx
     mov $mat, %esi
