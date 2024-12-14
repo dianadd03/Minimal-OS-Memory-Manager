@@ -46,11 +46,11 @@ loop_T:
     mov $2, %eax
     cmp task, %eax
     je et_get
-    /*
+    
     mov $3, %eax
     cmp task, %eax
     je et_delete
-
+    /*
     mov $4, %eax
     cmp task, %eax
     je et_defragmentation*/
@@ -317,64 +317,95 @@ et_delete:
     add $8, %esp
 
 delete:
-    mov $0, %eax
-    mov $-1, %ebx
-    xor %ecx, %ecx
-    mov $v, %esi
-    movl (%esi, %ecx, 4), %edi /*valc*/
+    mov $mat, %esi
+    movl $0, lineIndex
+    forD_lines:
+        movl lineIndex, %ecx
+        cmp %ecx, N
+        je delete_ret
 
-loop_delete:
-    cmp %ecx, N
-    je delete_ret
+        movl $0, start
+        movl $-1, finish
+        movl $0, columnIndex
+        mov $0, %edx
+        mov $0, %eax
+        mov lineIndex, %eax
+        mull N
+        add columnIndex, %eax
 
-    movl (%esi, %ecx, 4), %edx
+        movl (%esi, %eax, 4), %ebx /*valc */
 
-    cmp %edx, %edi
-    jne delete_ifs
+        forD_columns:
+            mov columnIndex, %ecx
+            cmp %ecx, N
+            je contD_lines
 
-loopdelete_ret:
-    cmp %edx, descriptor
-    je delete_actualizare
-loop_del_ret:
-    inc %ecx
-    jmp loop_delete
+            mov $mat, %esi
+            mov $0, %edx
+            mov $0, %eax
+            mov lineIndex, %eax
+            mull N
+            add columnIndex, %eax
 
-delete_ifs:
-    mov %ecx, %ebx
-    sub $1, %ebx
+            movl (%esi, %eax, 4), %edx
 
-    cmp %edi, descriptor
+            cmp %ebx, %edx
+            jne delete_if1
+        delete_cont:
+            cmp %ebx, descriptor
+            je delete_actualizare
+
+        contD_columns:
+            incl columnIndex
+            jmp forD_columns
+
+
+    contD_lines:
+        incl lineIndex
+        jmp forD_lines
+
+
+delete_if1:
+    mov columnIndex, %ebp
+    mov %ebp, finish
+    subl $1, finish
+
+    cmp %ebx, descriptor
     jne delete_afisare
 
 delete_afis_ret:
-    mov %ecx, %eax
-    mov %edx, %edi
+    mov columnIndex, %ebp
+    mov %ebp, start
+    mov %edx, %ebx
 
-    jmp loopdelete_ret
+    jmp delete_cont
 
 delete_actualizare:
     mov $0, %ebp
-    movl %ebp,  (%esi, %ecx, 4)
-    jmp loop_del_ret
+    movl %ebp,  (%esi, %eax, 4)
+    jmp contD_columns
 
 delete_afisare:
     mov $0, %ebp
-    cmp %edi, %ebp
+    cmp %ebx, %ebp
     je delete_afis_ret
 
-    push %edx
-    push %ecx
-    push %ebx
     push %eax
-    push %edi
+    push %ecx
+    push %edx
+    push finish
+    push lineIndex
+    push start
+    push lineIndex
+    push %ebx
     push $formatPrintfADD
     call printf
-    add $4, %esp
-    pop %edi
-    pop %eax
     pop %ebx
-    pop %ecx
+    add $16, %esp
+    pop %ebx
     pop %edx
+    pop %ecx
+    pop %eax
 
     jmp delete_afis_ret
 
