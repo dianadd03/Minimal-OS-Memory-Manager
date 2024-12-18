@@ -425,6 +425,10 @@ control:
     jmp loop   
 */
 et_exit:
+    pushl $0
+    call fflush
+    popl %eax
+    
     mov $1, %eax
     xor %ebx, %ebx
     int $0x80
