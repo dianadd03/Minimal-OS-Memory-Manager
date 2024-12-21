@@ -327,10 +327,30 @@ delete_afisare:
 delete_verif_last:
     mov N, %ecx
     sub $1, %ecx
+    mov %ecx, %ebx
     mov (%esi, %ecx, 4), %edx
 
     cmp %edx, %edi
-    je delete_afisare
+    je delete_afisare_last
+
+delete_afisare_last:
+    mov $0, %ebp
+    cmp %edi, %ebp
+    je delete_ret
+
+    push %edx
+    push %ecx
+    push %ebx
+    push %eax
+    push %edi
+    push $formatPrintfADD
+    call printf
+    add $4, %esp
+    pop %edi
+    pop %eax
+    pop %ebx
+    pop %ecx
+    pop %edx
 
 delete_ret:
     pop %ecx
