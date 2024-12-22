@@ -330,6 +330,8 @@ delete_verif_last:
     mov %ecx, %ebx
     mov (%esi, %ecx, 4), %edx
 
+    cmp descriptor, %edi
+    je delete_ret
     cmp %edx, %edi
     je delete_afisare_last
 
@@ -395,7 +397,7 @@ defrag_afis:
 
 loop_defrag_afis:
     cmp %ecx, N
-    je defragmentation_ret
+    je defrag_verif_last
 
     movl (%esi, %ecx, 4), %edx
 
@@ -431,6 +433,34 @@ defrag_afis_ret:
     mov %edx, %edi
 
     jmp loop_defrag_ret
+
+defrag_verif_last:
+    mov N, %ecx
+    sub $1, %ecx
+    mov %ecx, %ebx
+    mov (%esi, %ecx, 4), %edx
+
+    cmp %edx, %edi
+    jne defragmentation_ret
+
+defrag_afisare_last:
+    mov $0, %ebp
+    cmp %edi, %ebp
+    je defragmentation_ret
+
+    push %edx
+    push %ecx
+    push %ebx
+    push %eax
+    push %edi
+    push $formatPrintfADD
+    call printf
+    add $4, %esp
+    pop %edi
+    pop %eax
+    pop %ebx
+    pop %ecx
+    pop %edx
 
 defragmentation_ret:
     pop %ecx
