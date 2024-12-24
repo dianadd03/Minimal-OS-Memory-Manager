@@ -10,9 +10,9 @@
     lineIndex: .space 4
     columnIndex: .space 4
     mat:.space 4194304 
+    desc:.space 4000
+    sz:.space 4000
     N:.long 1024
-    N2:.long 2048
-    NN:.long 4194304 
     formatScanf:.asciz "%d\n"
     formatPrintfTest1:.asciz "%d\n"
     formatPrintfADD:.asciz "%d: ((%d, %d), (%d, %d))\n"
@@ -466,105 +466,197 @@ delete_ret:
 
 
 
-/*DEFRAGMENTATION-----------------------------------------------------*/
+/*DEFRAGMENTATION-----------------------------------------------------------------------------------------*/
+defragmentation_ret:
+    pop %ecx
+    inc %ecx
+    jmp loop_T
+
 et_defragmentation:
     mov $mat, %esi
+    movl $0, descriptor
+    movl $0, size
+    movl $0, start
+    movl $0, %ebx /* k */
     movl $0, lineIndex
 
-forDf_i:
-    mov lineIndex, %ecx /*i */
-    cmpl %ecx, NN
-    je defrag_afis
+forDf_lines:
+    movl lineIndex, %ecx
+    cmpl %ecx, N
+    je defrag_reform
 
-    movl (%esi, %ecx, 4), %edi /*mat[i] */
-    movl $0, %ebp
-    cmp %edi, %ebp
-    jne forDf_i_cont
+    movl $0, columnIndex
+    forDf_columns:
+        movl columnIndex, %ecx
+        cmpl %ecx, N
+        je forDf_lines_cont
 
-    mov %ecx, columnIndex /*j */
-    movl $0, descriptor /*valc */
-    forDf_j:
-        mov columnIndex, %ecx
-        cmp %ecx, NN
-        je fori_cont
-
-        movl (%esi, %ecx, 4), %edi /*mat[j] */
-
-        movl $0, %ebp
-        cmpl descriptor, %ebp
+        mov $0, %ebp
+        cmpl descriptor, %ebp 
         je defrag_if1
 
-        cmp %edi, descriptor
-        je forj_cont
-
-        mov columnIndex, %ebp
-        sub $1, %ebp
-        mov %ebp, finish
-        mov %ebp, size
-        mov start, %ebp
-        sub %ebp, size
-        jmp fori_cont
-
-    forj_cont:
-        addl $1, columnIndex
-        jmp forDf_j
-
-    fori_cont:
-        mov $0, %edx
         mov lineIndex, %eax
-        mov $1024, %ebp
-        div %ebp
-        mov $0, %eax
-        add size, %edx
+        mull N
+        add columnIndex, %eax
+        movl (%esi, %eax, 4), %edx /*mat[i][j] */
+        
+        cmp %edx, descriptor
+        jne defrag_if2
+    forDf_col_cont:
+        mov $1023, %ebp
+        cmp columnIndex, %ebp
+        je defrag_if3
+    forDf_columns_cont:
+        addl $1, columnIndex
+        jmp forDf_columns
 
-        cmp %edx, N
-        jg forj2
-
-    forDf_i_cont:
-        mov %ebx, lineIndex
+    forDf_lines_cont:
         addl $1, lineIndex
-        jmp forDf_i
-
+        jmp forDf_lines        
 
 defrag_if1:
-    movl $0, %ebp
-    cmp %edi, %ebp
-    je forj_cont
+    mov lineIndex, %eax
+    mull N
+    add columnIndex, %eax
+
+    movl (%esi, %eax, 4), %edi /*mat[i][j] */
+    cmpl $0, %edi
+    je forDf_columns_cont
 
     mov %edi, descriptor
     mov columnIndex, %ebp
     mov %ebp, start
+    
+    jmp forDf_columns_cont   
 
-    jmp forj_cont
-forj2:
-    mov lineIndex, %ecx
-    mov lineIndex, %ebx
-    add size, %ebx
-forj2_loop:
-    cmpl %ecx, %ebx
-    jl forDf_i_cont
+defrag_if2:
+    mov columnIndex, %ebp
+    mov %ebp, size
+    mov start, %ebp
+    subl %ebp, size
+    subl $1, size
 
-    movl descriptor, %edi
-    movl %edi, (%esi, %ecx, 4)
+    mov $desc, %edi
+    mov descriptor, %ebp
+    mov %ebp, (%edi, %ebx, 4)
+    mov $sz, %edi
+    mov size, %ebp
+    mov %ebp, (%edi, %ebx, 4)
+    add $1, %ebx
+    movl $0, descriptor
+    subl $1, columnIndex
+
+    jmp forDf_col_cont
+
+defrag_if3:
+    mov lineIndex, %eax
+    mull N
+    add columnIndex, %eax
+
+    movl (%esi, %eax, 4), %edi
+    cmpl $0, %edi
+    je forDf_columns_cont
+
+    mov columnIndex, %ebp
+    mov %ebp, size
+    mov start, %ebp
+    sub %ebp, size
+    mov $desc, %edi
+    mov descriptor, %ebp
+    mov %ebp, (%edi, %ebx, 4)
+    mov $sz, %edi
+    mov size, %ebp
+    mov %ebp, (%edi, %ebx, 4)
+    inc %ebx
+    movl $0, descriptor
+
+    jmp forDf_columns_cont
+
+
+defrag_reform:
+    movl $-1, finish
+    movl $0, lineIndex
+    mov %ebx, k
+    movl $0, %ebx
+
+    forDfr_lines:
+        movl lineIndex, %ecx
+        cmpl %ecx, N
+        je defrag_afis
+
+        movl $0, columnIndex
+        forDfr_columns:
+            movl columnIndex, %ecx
+            cmpl %ecx, N
+            je forDfr_lines_cont
+
+            mov lineIndex, %eax
+            mull N
+            add columnIndex, %eax
+            mov $mat, %esi
+
+            movl $0, (%esi, %eax, 4)
+            cmp %ebx, k
+            jge Dfr_ifs
+        forDfr_columns_cont:
+            addl $1, columnIndex
+            jmp forDfr_columns
+    forDfr_lines_cont:
+        addl $1, lineIndex
+        jmp forDfr_lines
+
+
+Dfr_ifs:
+    mov $-1, %ebp
+    cmpl finish, %ebp
+    je Dfr_if1
+Dfr_ifs_cont1:
+    mov columnIndex, %ebp
+    cmp %ebp, finish
+    jge Dfr_if2
+Dfr_ifs_cont2:
+    mov columnIndex, %ebp
+    cmp %ebp, finish
+    je Dfr_if3
+    jmp forDfr_columns_cont
+
+Dfr_if1:
+    mov $sz, %esi
+    mov (%esi, %ebx, 4), %edx
+    mov columnIndex, %ebp
+    add %ebp, %edx
+    cmp %edx, N
+    jle forDfr_columns_cont
 control1:
-    mov start, %eax
-    add %ecx, %eax
-    sub lineIndex, %eax
+    mov %edx, finish
+    jmp Dfr_ifs_cont1
 
-    movl $0, (%esi, %eax, 4)
+Dfr_if2:
+    mov $desc, %esi
+    movl (%esi, %ebx, 4), %edi
+    mov lineIndex, %eax
+    mull N
+    add columnIndex, %eax
+    mov $mat, %esi
+    movl %edi, (%esi, %eax, 4)
+    jmp Dfr_ifs_cont2
 
-    inc %ecx
-    jmp forj2_loop
+Dfr_if3:
+    movl $-1, finish
+    addl $1, %ebx
+
+    jmp forDfr_columns_cont
+
 
 
 defrag_afis:
-    mov $mat, %esi
     movl $0, lineIndex
     forDfa_lines:
         movl lineIndex, %ecx
         cmp %ecx, N
-        je defragmentation_ret
+        jge defragmentation_ret
 
+        mov $mat, %esi
         movl $0, start
         movl $-1, finish
         movl $0, columnIndex
@@ -574,10 +666,11 @@ defrag_afis:
         mull N
         add columnIndex, %eax
 
-        movl (%esi, %eax, 4), %ebx /*valc */
+        movl (%esi, %eax, 4), %ebp 
+        movl %ebp, k/*valc */
 
         forDfa_columns:
-            mov columnIndex, %ecx
+            movl columnIndex, %ecx
             cmp %ecx, N
             je defrag_verif_last
 
@@ -588,18 +681,20 @@ defrag_afis:
             mull N
             add columnIndex, %eax
 
-            movl (%esi, %eax, 4), %edx
-
-            cmp %ebx, %edx
+            movl (%esi, %eax, 4), %ebp
+            movl %ebp, descriptor/*mat[i][j] */
+            
+            movl k, %ebx
+            cmp %ebx, descriptor
             jne defraga_if
 
         contDfa_columns:
-            incl columnIndex
+            addl $1, columnIndex
             jmp forDfa_columns
 
 
     contDfa_lines:
-        incl lineIndex
+        addl $1, lineIndex
         jmp forDfa_lines
 
 
@@ -609,9 +704,10 @@ defraga_if:
     subl $1, finish
 defraga_afisare:
     mov $0, %ebp
-    cmp %ebx, %ebp
+    cmp k, %ebp
     je defraga_afis_ret
 
+    push %ebx
     push %eax
     push %ecx
     push %edx
@@ -619,20 +715,20 @@ defraga_afisare:
     push lineIndex
     push start
     push lineIndex
-    push %ebx
+    push k
     push $formatPrintfADD
     call printf
-    pop %ebx
-    add $16, %esp
-    pop %ebx
+    add $20, %esp
     pop %edx
     pop %ecx
     pop %eax
+    pop %ebx
 
 defraga_afis_ret:
     mov columnIndex, %ebp
     mov %ebp, start
-    mov %edx, %ebx
+    mov descriptor, %ebx
+    mov %ebx, k
 
     jmp contDfa_columns
 
@@ -642,12 +738,13 @@ defrag_verif_last:
     sub $1, %ecx
     mov %ecx, finish
     mov $0, %edx
-    mov lineIndex, %eax
+    movl lineIndex, %eax
     mull N
     add finish, %eax
-    mov (%esi, %eax, 4), %edx
-
-    cmp %edx, %ebx
+    movl (%esi, %eax, 4), %ebp
+    movl %ebp, descriptor
+    movl k, %ebx
+    cmp descriptor, %ebx
     jne contDfa_lines
 
 defrag_afisare_last:
@@ -655,6 +752,7 @@ defrag_afisare_last:
     cmp %ebx, %ebp
     je contDfa_lines
     
+    push %ebx
     push %eax
     push %ecx
     push %edx
@@ -662,25 +760,43 @@ defrag_afisare_last:
     push lineIndex
     push start
     push lineIndex
-    push %ebx
+    push k
     push $formatPrintfADD
     call printf
-    pop %ebx
-    add $16, %esp
-    pop %ebx
+    add $20, %esp
     pop %edx
     pop %ecx
     pop %eax
+    pop %ebx
 
     jmp contDfa_lines
 
-defragmentation_ret:
-    pop %ecx
-    inc %ecx
-    jmp loop_T
+
 
 /*------------------------------------------------------------ */
+/*
+afisare_v:
+    movl $49, %ebp
+    mov %ebp, k
+    xor %ecx, %ecx
+    mov $mat, %esi
+loop:
+    cmp %ecx, k
+    je et_exit
 
+    movl (%esi, %ecx, 4), %eax
+
+    push %ecx
+
+    push %eax
+    push $formatPrintfTest1
+    call printf
+    add $8, %esp
+    pop %ecx
+    inc %ecx
+
+    jmp loop   
+*/
 et_exit:
     pushl $0
     call fflush
