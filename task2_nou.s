@@ -11,6 +11,7 @@
     columnIndex: .space 4
     mat:.space 4194304 
     N:.long 1024
+    N2:.long 2048
     NN:.long 4194304 
     formatScanf:.asciz "%d\n"
     formatPrintfTest1:.asciz "%d\n"
@@ -465,8 +466,9 @@ delete_ret:
 
 
 
-/*DEFRAGMENTATION */
+/*DEFRAGMENTATION-----------------------------------------------------*/
 et_defragmentation:
+    mov $mat, %esi
     movl $0, lineIndex
 
 forDf_i:
@@ -474,22 +476,29 @@ forDf_i:
     cmpl %ecx, NN
     je defrag_afis
 
+    movl (%esi, %ecx, 4), %edi /*mat[i] */
+    movl $0, %ebp
+    cmp %edi, %ebp
+    jne forDf_i_cont
+
     mov %ecx, columnIndex /*j */
-    mov $0, %ebx /*valc */
+    movl $0, descriptor /*valc */
     forDf_j:
         mov columnIndex, %ecx
-        cmpl %ecx, NN
+        cmp %ecx, NN
         je fori_cont
 
         movl (%esi, %ecx, 4), %edi /*mat[j] */
+
         movl $0, %ebp
-        cmpl %ebx, %ebp
+        cmpl descriptor, %ebp
         je defrag_if1
 
-        cmp %edi, %ebx
+        cmp %edi, descriptor
         je forj_cont
 
         mov columnIndex, %ebp
+        sub $1, %ebp
         mov %ebp, finish
         mov %ebp, size
         mov start, %ebp
@@ -501,20 +510,25 @@ forDf_i:
         jmp forDf_j
 
     fori_cont:
+        mov $0, %edx
         mov lineIndex, %eax
-        divl n
+        mov $1024, %ebp
+        div %ebp
+        mov $0, %eax
         add size, %edx
+
         cmp %edx, N
         jg forj2
 
     forDf_i_cont:
+        mov %ebx, lineIndex
         addl $1, lineIndex
         jmp forDf_i
 
 
 defrag_if1:
     movl $0, %ebp
-    cmpl %edi, %ebp
+    cmp %edi, %ebp
     je forj_cont
 
     mov %edi, descriptor
@@ -528,11 +542,11 @@ forj2:
     add size, %ebx
 forj2_loop:
     cmpl %ecx, %ebx
-    je forDf_i_cont
-    
+    jl forDf_i_cont
+
     movl descriptor, %edi
     movl %edi, (%esi, %ecx, 4)
-
+control1:
     mov start, %eax
     add %ecx, %eax
     sub lineIndex, %eax
@@ -666,27 +680,6 @@ defragmentation_ret:
     jmp loop_T
 
 /*------------------------------------------------------------ */
-afisare_v:
-    xor %ecx, %ecx
-    mov $mat, %esi
-loop:
-    cmp %ecx, N
-    je et_exit
-
-
-    movl (%esi, %ecx, 4), %eax
-
-    push %ecx
-
-    push %eax
-    push $formatPrintfTest1
-    call printf
-    add $8, %esp
-    pop %ecx
-control:
-    inc %ecx
-
-    jmp loop   
 
 et_exit:
     pushl $0
