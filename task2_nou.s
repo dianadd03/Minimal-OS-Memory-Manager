@@ -467,10 +467,6 @@ delete_ret:
 
 
 /*DEFRAGMENTATION-----------------------------------------------------------------------------------------*/
-defragmentation_ret:
-    pop %ecx
-    inc %ecx
-    jmp loop_T
 
 et_defragmentation:
     mov $mat, %esi
@@ -627,7 +623,7 @@ Dfr_if1:
     add %ebp, %edx
     cmp %edx, N
     jle forDfr_columns_cont
-control1:
+
     mov %edx, finish
     jmp Dfr_ifs_cont1
 
@@ -647,15 +643,17 @@ Dfr_if3:
 
     jmp forDfr_columns_cont
 
-
+/*--------------------------------- */
 
 defrag_afis:
+    mov k, %ebp
+    mov %ebp, n
     movl $0, lineIndex
     forDfa_lines:
         movl lineIndex, %ecx
         cmp %ecx, N
-        jge defragmentation_ret
-
+        je defragmentation_ret
+        
         mov $mat, %esi
         movl $0, start
         movl $-1, finish
@@ -718,7 +716,7 @@ defraga_afisare:
     push k
     push $formatPrintfADD
     call printf
-    add $20, %esp
+    add $24, %esp
     pop %edx
     pop %ecx
     pop %eax
@@ -763,7 +761,7 @@ defrag_afisare_last:
     push k
     push $formatPrintfADD
     call printf
-    add $20, %esp
+    add $24, %esp
     pop %edx
     pop %ecx
     pop %eax
@@ -771,18 +769,36 @@ defrag_afisare_last:
 
     jmp contDfa_lines
 
+defragmentation_ret:
+    xor %ecx, %ecx
+loop:
+    cmp %ecx, n
+    je defrag_ret
 
+    mov $desc, %esi
+    movl $0, (%esi, %ecx, 4)
+
+    mov $sz, %esi
+    movl $0, (%esi, %ecx, 4)
+
+    inc %ecx
+    jmp loop   
+
+defrag_ret:
+    movl $0, n
+    pop %ecx
+    inc %ecx
+    jmp loop_T
 
 /*------------------------------------------------------------ */
 /*
 afisare_v:
-    movl $49, %ebp
-    mov %ebp, k
     xor %ecx, %ecx
-    mov $mat, %esi
-loop:
+    mov $desc, %esi
+    movl $17, k
+loopaf:
     cmp %ecx, k
-    je et_exit
+    je cont
 
     movl (%esi, %ecx, 4), %eax
 
@@ -795,7 +811,7 @@ loop:
     pop %ecx
     inc %ecx
 
-    jmp loop   
+    jmp loopaf   
 */
 et_exit:
     pushl $0
@@ -805,4 +821,3 @@ et_exit:
     mov $1, %eax
     xor %ebx, %ebx
     int $0x80
-
