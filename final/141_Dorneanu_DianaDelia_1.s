@@ -13,6 +13,9 @@
     desc:.space 4000
     sz:.space 4000
     N:.long 1024
+    filepath:.space 256
+    input_format:.asciz "%s\n"
+    fileInfo: .space 128
     formatScanf:.asciz "%d\n"
     formatPrintfTest1:.asciz "%d\n"
     formatPrintfADD:.asciz "%d: ((%d, %d), (%d, %d))\n"
@@ -58,6 +61,10 @@ loop_T:
     cmp task, %eax
     je et_defragmentation
 
+    mov $5, %eax
+    cmp task, %eax
+    je et_concrete
+
 /*ADD------------------------------------------------------------ */
 et_add:
     push $n
@@ -81,6 +88,7 @@ et_add_loop:
     call scanf
     add $8, %esp   
 
+conc_add:
     mov size, %eax
     mov $0, %edx
     mov $8, %ebx
@@ -788,6 +796,47 @@ defrag_ret:
     pop %ecx
     inc %ecx
     jmp loop_T
+
+/*CONCRETE------------------------------------------------ */
+et_concrete:
+    push $filepath
+    push $input_format
+    call scanf
+    add $8, %esp
+
+    movl $5,%eax
+    movl $filepath ,%ebx
+    movl $0,%ecx
+    xorl %edx, %edx
+    int $0x80
+    mov %eax, descriptor
+
+   
+    mov $108, %eax              
+    mov descriptor, %ebx
+    mov $fileInfo, %ecx          
+    int $0x80                  
+
+    mov %ebx, %eax              
+    mov $255, %ecx             
+    xor %edx, %edx              
+    div %ecx                    
+    add $1, %edx  
+    mov %edx, descriptor              
+
+    
+    mov fileInfo + 20, %eax     
+    xor %edx, %edx             
+    mov $1024, %ecx            
+    div %ecx                  
+    mov %eax, size
+
+
+concrete:
+    movl $1, n
+    xor %ecx, %ecx
+    push %ecx
+    jmp conc_add
 
 /*------------------------------------------------------------ */
 
