@@ -797,8 +797,9 @@ defrag_ret:
     inc %ecx
     jmp loop_T
 
-/*CONCRETE------------------------------------------------ */
+/*CONCRETE-------------------------------------------------------------------------------------------------------- */
 et_concrete:
+    
     push $filepath
     push $input_format
     call scanf
@@ -833,6 +834,41 @@ et_concrete:
 
 
 concrete:
+verif_descriptor:
+    forC_lines:
+    movl lineIndex, %ecx
+    cmpl %ecx, N
+    je concrete_ret
+
+    movl $0, columnIndex
+    forC_columns:
+        movl columnIndex, %ecx
+        cmpl %ecx, N
+        je forC_lines_cont
+
+        mov lineIndex, %eax
+        mull N
+        add columnIndex, %eax
+        movl (%esi, %eax, 4), %edx /*mat[i][j]*/ 
+        
+        cmp %edx, descriptor
+        je concrete_X_ret
+    
+    forC_columns_cont:
+        addl $1, columnIndex
+        jmp forC_columns
+
+    forC_lines_cont:
+        addl $1, lineIndex
+        jmp forC_lines  
+
+concrete_X_ret:
+    movl $1, n
+    xor %ecx, %ecx
+    push %ecx
+    jmp add_ret_Xafis
+
+concrete_ret:
     movl $1, n
     xor %ecx, %ecx
     push %ecx
