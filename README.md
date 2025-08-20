@@ -1,7 +1,6 @@
 # Computer Systems Architecture – Assignment
 
 This project implements a minimal **storage management module** for a simplified operating system, written in **x86 Assembly**.  
-It is based on the lab assignment for the _Computer Systems Architecture_ course (University of Bucharest, 2024–2025).
 
 ---
 
